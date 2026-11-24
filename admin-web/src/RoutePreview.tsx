@@ -4,6 +4,7 @@ import { errorMessage, getNearestStairsRoute } from './api'
 import { placeKindLabels } from './types'
 import type { NearestStairsRoute, Place } from './types'
 import RoutePlacePhoto from './RoutePlacePhoto'
+import CameraRouteExport from './CameraRouteExport'
 import './RoutePreview.css'
 
 export default function RoutePreview({ places, disabled, connectionRevision, confirmedSource }: {
@@ -80,6 +81,7 @@ export default function RoutePreview({ places, disabled, connectionRevision, con
         </li>)}</ol>}
       </>}
       {!found && <p className="route-help">위의 장소 등록·이동 경로 관리에서 정보를 수정한 뒤 다시 계산해 주세요. 경로 없음은 실제 대피할 곳이 없다는 뜻이 아니에요.</p>}
+      {result.status === 'found' && result.steps.length > 0 && <CameraRouteExport key={`${result.source.id}-${result.calculatedAt}`} route={result} />}
       <p className="route-calculated">계산 시각: {new Date(result.calculatedAt).toLocaleTimeString('ko-KR')}</p>
     </div>}
     <p className="connection-note">{result?.notice ?? '관리자가 등록한 연결·거리·통행 불가 상태로 계산하는 시연 기능이에요. 화재·연기·실제 통행 가능 여부를 자동 감지하지 않으며, 비상계단 입구 도착은 건물 밖 대피 완료와 달라요.'}</p>

@@ -1,0 +1,41 @@
+{
+  "kind": "evacuation-camera-route",
+  "schemaVersion": 1,
+  "demo": true,
+  "calculatedAt": "2026-11-24T05:24:06.108060+00:00",
+  "building": "[테스트] 가상 회사",
+  "floor": "2층",
+  "source": {
+    "id": "805fd949-b0e0-447f-8f91-bdbcdb25756e",
+    "room": "ai 듣기"
+  },
+  "destination": {
+    "id": "5c0abd36-2a37-4f19-8542-daa2b3730ba5",
+    "room": "동쪽 비상계단"
+  },
+  "totalDistanceMeters": 20.0,
+  "steps": [
+    {
+      "connectionId": "c8c084a1-3812-4acd-8176-0f2da9dbbc58",
+      "fromPlaceId": "805fd949-b0e0-447f-8f91-bdbcdb25756e",
+      "toPlaceId": "bc6f1158-1172-4945-8983-da6d1eb06465",
+      "distanceMeters": 8.0,
+      "instruction": "문을 나와 파란 문이 보이는 복도 갈림길로 이동하세요.",
+      "toName": "복도 갈림길",
+      "direction": "straight",
+      "facingHint": "AI 연결 시연 기준: 복도 갈림길 표지판을 정면으로 비춰 주세요.",
+      "facingSignText": "복도 갈림길"
+    },
+    {
+      "connectionId": "5574e4d3-3609-4e16-8043-e88649aeecee",
+      "fromPlaceId": "bc6f1158-1172-4945-8983-da6d1eb06465",
+      "toPlaceId": "5c0abd36-2a37-4f19-8542-daa2b3730ba5",
+      "distanceMeters": 12.0,
+      "instruction": "초록색 문과 동쪽 비상계단 표지판이 있는 입구로 이동하세요.",
+      "toName": "동쪽 비상계단",
+      "direction": "right",
+      "facingHint": "AI 연결 시연 기준: 동쪽 비상계단 표지판을 정면으로 비춰 주세요.",
+      "facingSignText": "동쪽 비상계단"
+    }
+  ]
+}

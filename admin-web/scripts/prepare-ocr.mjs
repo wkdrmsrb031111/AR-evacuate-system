@@ -14,4 +14,5 @@ for (const lang of ['kor', 'eng']) {
   await copyFile(path.join(root, `node_modules/@tesseract.js-data/${lang}/4.0.0/${lang}.traineddata.gz`), path.join(target, `lang/${lang}.traineddata.gz`))
 }
 await copyFile(path.join(root, '../demo-assets/demo-room.png'), path.join(target, 'sample.png'))
+await copyFile(path.join(root, '../demo-assets/demo-corridor.png'), path.join(root, 'public/ai-sample.png'))
 console.log('OCR worker, models and sample prepared locally.')

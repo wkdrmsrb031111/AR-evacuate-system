@@ -1,0 +1,82 @@
+{
+  "testedAt": "2026-11-24T03:44:11.364Z",
+  "environment": "PC Node.js, Tesseract.js 7, kor+eng; not Galaxy",
+  "fixtureNotice": "Three generated demo photographs. Regions manually selected. Not a real-building accuracy benchmark.",
+  "startupMs": 659,
+  "results": [
+    {
+      "file": "demo-room.png",
+      "region": "whole",
+      "expected": "ai 듣기",
+      "text": "",
+      "modelConfidence": 95,
+      "exactTextContained": false,
+      "recognitionMs": 260
+    },
+    {
+      "file": "demo-room.png",
+      "region": {
+        "left": 560,
+        "top": 75,
+        "width": 350,
+        "height": 110
+      },
+      "expected": "ai 듣기",
+      "text": "22| 듣기",
+      "modelConfidence": 68,
+      "exactTextContained": false,
+      "recognitionMs": 98
+    },
+    {
+      "file": "demo-corridor.png",
+      "region": "whole",
+      "expected": "복도 갈림길",
+      "text": "수\n\n~",
+      "modelConfidence": 55,
+      "exactTextContained": false,
+      "recognitionMs": 153
+    },
+    {
+      "file": "demo-corridor.png",
+      "region": {
+        "left": 790,
+        "top": 440,
+        "width": 320,
+        "height": 90
+      },
+      "expected": "복도 갈림길",
+      "text": "복도 갈림길",
+      "modelConfidence": 97,
+      "exactTextContained": true,
+      "recognitionMs": 71
+    },
+    {
+      "file": "demo-east-stairs.png",
+      "region": "whole",
+      "expected": "동쪽 비상계단",
+      "text": "",
+      "modelConfidence": 95,
+      "exactTextContained": false,
+      "recognitionMs": 127
+    },
+    {
+      "file": "demo-east-stairs.png",
+      "region": {
+        "left": 970,
+        "top": 325,
+        "width": 390,
+        "height": 90
+      },
+      "expected": "동쪽 비상계단",
+      "text": "동쪽 비 상 계단",
+      "modelConfidence": 92,
+      "exactTextContained": true,
+      "recognitionMs": 78
+    }
+  ],
+  "negativeControl": {
+    "recognizedText": "22| 듣기",
+    "wrongExpected": "복도 갈림길",
+    "matched": false
+  }
+}
