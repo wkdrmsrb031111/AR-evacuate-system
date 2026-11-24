@@ -1,0 +1,54 @@
+{
+  "photos": [
+    {
+      "building": "[테스트] 가상 회사",
+      "room": "ai 듣기",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "building": "[테스트] 가상 회사",
+      "room": "동쪽 비상계단",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "building": "[테스트] 가상 회사",
+      "room": "복도 갈림길",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "building": "[테스트] 가상 회사",
+      "room": "서쪽 비상계단",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "building": "마산대학교 미래관",
+      "room": "ai 듣기",
+      "width": 1448,
+      "height": 1086
+    }
+  ],
+  "blockedRoute": {
+    "distance": 60.0,
+    "destination": "서쪽 비상계단"
+  },
+  "baseRoute": {
+    "distance": 20.0,
+    "destination": "동쪽 비상계단"
+  },
+  "restoredRoute": {
+    "distance": 20.0,
+    "destination": "동쪽 비상계단"
+  },
+  "readiness": {
+    "activePlaceCount": 5,
+    "roomCount": 2,
+    "reachableRoomCount": 1,
+    "needsRouteCount": 1,
+    "missingPhotoCount": 0
+  },
+  "note": "기존 실제 건물의 ai 듣기 장소에는 사진만 추가함. 해당 실제 건물의 계단·연결은 미등록 상태 유지."
+}

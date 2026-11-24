@@ -1,0 +1,15 @@
+.tools/
+**/node_modules/
+**/.venv/
+**/dist/
+**/__pycache__/
+**/.test-artifacts/
+server/data/
+admin-web/public/ocr/
+.env
+.env.*
+!.env.example
+*.pyc
+*.sqlite3
+*.sqlite3-*
+*.log

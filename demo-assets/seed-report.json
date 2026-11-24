@@ -1,0 +1,100 @@
+{
+  "building": "[테스트] 가상 회사",
+  "floor": "2층",
+  "places": {
+    "ai 듣기": "805fd949-b0e0-447f-8f91-bdbcdb25756e",
+    "복도 갈림길": "bc6f1158-1172-4945-8983-da6d1eb06465",
+    "동쪽 비상계단": "5c0abd36-2a37-4f19-8542-daa2b3730ba5",
+    "서쪽 비상계단": "71d5ad9d-7cf6-4079-b885-a8d4d34c1f86"
+  },
+  "connections": [
+    {
+      "id": "c8c084a1-3812-4acd-8176-0f2da9dbbc58",
+      "source": "ai 듣기",
+      "target": "복도 갈림길"
+    },
+    {
+      "id": "5574e4d3-3609-4e16-8043-e88649aeecee",
+      "source": "복도 갈림길",
+      "target": "동쪽 비상계단"
+    },
+    {
+      "id": "4b03a170-5ed1-4399-919e-28404fbc999d",
+      "source": "ai 듣기",
+      "target": "서쪽 비상계단"
+    }
+  ],
+  "uploadedPhotos": [
+    "ai 듣기",
+    "복도 갈림길",
+    "동쪽 비상계단",
+    "서쪽 비상계단"
+  ],
+  "keptPhotos": [],
+  "route": {
+    "schemaVersion": 1,
+    "calculatedAt": "2026-11-23T06:41:47.233545+00:00",
+    "criterion": "distanceMeters",
+    "source": {
+      "id": "805fd949-b0e0-447f-8f91-bdbcdb25756e",
+      "building": "[테스트] 가상 회사",
+      "floor": "2층",
+      "room": "ai 듣기",
+      "kind": "room"
+    },
+    "destination": {
+      "id": "5c0abd36-2a37-4f19-8542-daa2b3730ba5",
+      "building": "[테스트] 가상 회사",
+      "floor": "2층",
+      "room": "동쪽 비상계단",
+      "kind": "stairs"
+    },
+    "totalDistanceMeters": 20.0,
+    "places": [
+      {
+        "id": "805fd949-b0e0-447f-8f91-bdbcdb25756e",
+        "building": "[테스트] 가상 회사",
+        "floor": "2층",
+        "room": "ai 듣기",
+        "kind": "room"
+      },
+      {
+        "id": "bc6f1158-1172-4945-8983-da6d1eb06465",
+        "building": "[테스트] 가상 회사",
+        "floor": "2층",
+        "room": "복도 갈림길",
+        "kind": "corridor"
+      },
+      {
+        "id": "5c0abd36-2a37-4f19-8542-daa2b3730ba5",
+        "building": "[테스트] 가상 회사",
+        "floor": "2층",
+        "room": "동쪽 비상계단",
+        "kind": "stairs"
+      }
+    ],
+    "steps": [
+      {
+        "connectionId": "c8c084a1-3812-4acd-8176-0f2da9dbbc58",
+        "fromPlaceId": "805fd949-b0e0-447f-8f91-bdbcdb25756e",
+        "toPlaceId": "bc6f1158-1172-4945-8983-da6d1eb06465",
+        "distanceMeters": 8.0,
+        "instruction": "문을 나와 파란 문이 보이는 복도 갈림길로 이동하세요."
+      },
+      {
+        "connectionId": "5574e4d3-3609-4e16-8043-e88649aeecee",
+        "fromPlaceId": "bc6f1158-1172-4945-8983-da6d1eb06465",
+        "toPlaceId": "5c0abd36-2a37-4f19-8542-daa2b3730ba5",
+        "distanceMeters": 12.0,
+        "instruction": "초록색 문과 동쪽 비상계단 표지판이 있는 입구로 이동하세요."
+      }
+    ],
+    "blockedConnectionCount": 0,
+    "rerouted": false,
+    "destinationChanged": false,
+    "originalDestination": null,
+    "notice": "관리자가 등록한 같은 층의 연결·거리·통행 불가 상태를 반영한 시연용 계산이에요. 화재·연기나 실제 통행 가능 여부를 자동 감지하지 않아요. 비상계단 입구 도착은 건물 밖 대피 완료와 달라요.",
+    "status": "found",
+    "message": "등록된 이동 거리의 합이 가장 짧은 경로예요."
+  }
+}
