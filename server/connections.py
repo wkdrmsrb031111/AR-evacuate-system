@@ -2,6 +2,7 @@
 import sqlite3
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
+from typing import Literal
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field, StrictBool, field_validator
@@ -13,11 +14,25 @@ class ConnectionValues(BaseModel):
     distanceMeters: float = Field(gt=0, le=1000, allow_inf_nan=False)
     forwardInstruction: str = Field(min_length=1, max_length=300)
     reverseInstruction: str = Field(min_length=1, max_length=300)
+    forwardDirection: Literal['left', 'straight', 'right'] | None = None
+    reverseDirection: Literal['left', 'straight', 'right'] | None = None
+    forwardFacingHint: str = Field(default='', max_length=200)
+    reverseFacingHint: str = Field(default='', max_length=200)
+    forwardSignText: str = Field(default='', max_length=60)
+    reverseSignText: str = Field(default='', max_length=60)
 
-    @field_validator('forwardInstruction', 'reverseInstruction', mode='before')
+    @field_validator('forwardInstruction', 'reverseInstruction', 'forwardFacingHint', 'reverseFacingHint',
+                     'forwardSignText', 'reverseSignText', mode='before')
     @classmethod
     def clean_instruction(cls, value):
         return ' '.join(value.split()) if isinstance(value, str) else value
+
+    @field_validator('forwardSignText', 'reverseSignText')
+    @classmethod
+    def validate_sign_text(cls, value):
+        if value and sum(character.isalnum() for character in value) < 2:
+            raise ValueError('표지판 이름은 글자나 숫자 두 자 이상이어야 합니다.')
+        return value
 
 
 class AvailabilityValues(BaseModel):
@@ -34,7 +49,11 @@ def encode_link(row):
     return {
         'id': row['id'], 'sourceId': row['source_id'], 'targetId': row['target_id'],
         'distanceMeters': row['distance_meters'], 'forwardInstruction': row['forward_instruction'],
-        'reverseInstruction': row['reverse_instruction'], 'bidirectional': True,
+        'reverseInstruction': row['reverse_instruction'],
+        'forwardDirection': row['forward_direction'], 'reverseDirection': row['reverse_direction'],
+        'forwardFacingHint': row['forward_facing_hint'], 'reverseFacingHint': row['reverse_facing_hint'],
+        'forwardSignText': row['forward_sign_text'], 'reverseSignText': row['reverse_sign_text'],
+        'bidirectional': True,
         'createdAt': row['created_at'],
         'blocked': bool(row['blocked']), 'blockedReason': row['blocked_reason'], 'blockedAt': row['blocked_at'],
         **({'deletedAt': row['deleted_at']} if row['deleted_at'] else {}),
@@ -77,14 +96,19 @@ def register_connection_routes(app, connection):
                 if row['deleted_at']:
                     raise HTTPException(409, '삭제한 연결은 먼저 복원해 주세요.')
                 db.execute('''UPDATE connections SET source_id=?,target_id=?,pair_a=?,pair_b=?,distance_meters=?,
-                    forward_instruction=?,reverse_instruction=? WHERE id=?''',
-                    (source_id,target_id,pair_a,pair_b,values.distanceMeters,values.forwardInstruction,values.reverseInstruction,str(link_id)))
+                    forward_instruction=?,reverse_instruction=?,forward_direction=?,reverse_direction=?,
+                    forward_facing_hint=?,reverse_facing_hint=?,forward_sign_text=?,reverse_sign_text=? WHERE id=?''',
+                    (source_id,target_id,pair_a,pair_b,values.distanceMeters,values.forwardInstruction,values.reverseInstruction,
+                     values.forwardDirection,values.reverseDirection,values.forwardFacingHint,values.reverseFacingHint,
+                     values.forwardSignText,values.reverseSignText,str(link_id)))
             else:
                 link_id = str(uuid4())
                 db.execute('''INSERT INTO connections(id,source_id,target_id,pair_a,pair_b,distance_meters,
-                    forward_instruction,reverse_instruction,created_at) VALUES (?,?,?,?,?,?,?,?,?)''',
+                    forward_instruction,reverse_instruction,forward_direction,reverse_direction,forward_facing_hint,
+                    reverse_facing_hint,forward_sign_text,reverse_sign_text,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                     (link_id,source_id,target_id,pair_a,pair_b,values.distanceMeters,values.forwardInstruction,
-                     values.reverseInstruction,datetime.now(timezone.utc).isoformat()))
+                     values.reverseInstruction,values.forwardDirection,values.reverseDirection,values.forwardFacingHint,
+                     values.reverseFacingHint,values.forwardSignText,values.reverseSignText,datetime.now(timezone.utc).isoformat()))
         except sqlite3.IntegrityError:
             raise HTTPException(409, '두 장소는 이미 연결되어 있어요. 반대 방향도 같은 연결이에요. 기존 연결을 수정해 주세요.')
         return encode_link(require_link(db, link_id))

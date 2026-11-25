@@ -135,6 +135,12 @@ def create_app(data_dir: Path | None = None):
             ('blocked', 'INTEGER NOT NULL DEFAULT 0 CHECK(blocked IN (0,1))'),
             ('blocked_reason', "TEXT NOT NULL DEFAULT ''"),
             ('blocked_at', 'TEXT'),
+            ('forward_direction', "TEXT CHECK(forward_direction IN ('left','straight','right'))"),
+            ('reverse_direction', "TEXT CHECK(reverse_direction IN ('left','straight','right'))"),
+            ('forward_facing_hint', "TEXT NOT NULL DEFAULT ''"),
+            ('reverse_facing_hint', "TEXT NOT NULL DEFAULT ''"),
+            ('forward_sign_text', "TEXT NOT NULL DEFAULT ''"),
+            ('reverse_sign_text', "TEXT NOT NULL DEFAULT ''"),
         ):
             if name not in link_columns:
                 db.execute(f'ALTER TABLE connections ADD COLUMN {name} {definition}')

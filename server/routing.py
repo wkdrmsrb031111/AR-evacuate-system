@@ -19,17 +19,18 @@ def shortest_path(graph, source_id, destinations):
             node_ids, steps = [current], []
             destination_id = current
             while current != source_id:
-                prior, connection_id, distance, instruction = previous[current]
+                prior, connection_id, distance, instruction, direction, facing_hint, sign_text = previous[current]
                 steps.append({'connectionId': connection_id, 'fromPlaceId': prior, 'toPlaceId': current,
-                              'distanceMeters': float(distance), 'instruction': instruction})
+                              'distanceMeters': float(distance), 'instruction': instruction,
+                              'direction': direction, 'facingHint': facing_hint, 'facingSignText': sign_text})
                 node_ids.append(prior)
                 current = prior
             return destination_id, float(total), list(reversed(node_ids)), list(reversed(steps))
-        for next_id, distance, connection_id, instruction in graph[current]:
+        for next_id, distance, connection_id, instruction, direction, facing_hint, sign_text in graph[current]:
             proposed = total + distance
             if next_id not in distances or proposed < distances[next_id]:
                 distances[next_id] = proposed
-                previous[next_id] = (current, connection_id, distance, instruction)
+                previous[next_id] = (current, connection_id, distance, instruction, direction, facing_hint, sign_text)
                 heapq.heappush(pending, (proposed, next_id))
     return None
 
@@ -63,8 +64,10 @@ def nearest_stairs(db, source_id: str):
         if a not in graph or b not in graph:
             continue
         distance = Decimal(str(link['distanceMeters']))
-        forward = (b, distance, link['id'], link['forwardInstruction'])
-        reverse = (a, distance, link['id'], link['reverseInstruction'])
+        forward = (b, distance, link['id'], link['forwardInstruction'], link['forwardDirection'],
+                   link['forwardFacingHint'], link['forwardSignText'])
+        reverse = (a, distance, link['id'], link['reverseInstruction'], link['reverseDirection'],
+                   link['reverseFacingHint'], link['reverseSignText'])
         baseline_graph[a].append(forward)
         baseline_graph[b].append(reverse)
         if link['blocked']:
@@ -98,4 +101,5 @@ def nearest_stairs(db, source_id: str):
         'places': [places[place_id] for place_id in node_ids], 'steps': steps,
         'rerouted': rerouted, 'destinationChanged': changed,
         'originalDestination': places[baseline[0]] if rerouted else None,
+        'cameraReady': all(step['direction'] and step['facingHint'] for step in steps),
     }

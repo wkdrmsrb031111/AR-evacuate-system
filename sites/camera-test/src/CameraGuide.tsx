@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './CameraGuide.css'
-import { parseCameraRoute } from './camera-route'
+import { cameraRouteFromNearest, parseCameraRoute } from './camera-route'
 import type { CameraRoute } from './camera-route'
 import SignAiCheck from './SignAiCheck'
 
@@ -9,6 +9,8 @@ const directions = [
   { id: 'straight', label: '직진', path: 'M100 185V55M100 55L56 99M100 55L144 99' },
   { id: 'right', label: '오른쪽', path: 'M68 180V110H147M147 110L114 77M147 110L114 143' },
 ] as const
+
+type AppPlace = { id: string; building: string; floor: string; room: string; kind: string }
 
 export default function CameraGuide() {
   const [direction, setDirection] = useState<typeof directions[number]['id']>('straight')
@@ -34,6 +36,9 @@ export default function CameraGuide() {
   const [voiceGuide, setVoiceGuide] = useState(() => { try { return localStorage.getItem('ar-evacuate-voice-guide') !== '0' } catch { return true } })
   const [vibrationGuide, setVibrationGuide] = useState(() => { try { return localStorage.getItem('ar-evacuate-vibration-guide') !== '0' } catch { return true } })
   const [voiceError, setVoiceError] = useState('')
+  const [serverPlaces, setServerPlaces] = useState<AppPlace[]>([])
+  const [selectedPlaceId, setSelectedPlaceId] = useState('')
+  const [loadingPlaces, setLoadingPlaces] = useState(false)
   const lastSpokenKey = useRef('')
   const loadVersion = useRef(0)
   const step = route?.steps[stepIndex]
@@ -85,6 +90,36 @@ export default function CameraGuide() {
       if (version === loadVersion.current) setRoute(parsed)
     } catch (cause) {
       if (version === loadVersion.current) setRouteError(cause instanceof SyntaxError ? 'JSON 안내 파일을 읽지 못했어요.' : cause instanceof Error ? cause.message : '안내 파일을 불러오지 못했어요.')
+    } finally { if (version === loadVersion.current) setLoadingRoute(false) }
+  }
+
+  async function loadServerPlaces() {
+    setLoadingPlaces(true); setRouteError('')
+    try {
+      const response = await fetch('/api/app/places', { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      if (!response.ok) throw new Error('관리자 서버에서 장소 목록을 불러오지 못했어요.')
+      const data = await response.json() as { places?: AppPlace[] }
+      const places = Array.isArray(data.places) ? data.places.filter(place => place.kind !== 'stairs' && place.kind !== 'exit') : []
+      setServerPlaces(places)
+      setSelectedPlaceId(current => places.some(place => place.id === current) ? current : places[0]?.id ?? '')
+      if (places.length === 0) setRouteError('선택할 수 있는 일반 장소가 없어요. 관리자 웹에서 장소를 등록해 주세요.')
+    } catch (cause) {
+      setRouteError(cause instanceof Error ? `${cause.message} 로컬 관리자 웹에서 열거나 아래 예제 경로를 사용해 주세요.` : '장소 목록을 불러오지 못했어요.')
+    } finally { setLoadingPlaces(false) }
+  }
+
+  async function loadRouteFromServer() {
+    if (!selectedPlaceId) return
+    const version = ++loadVersion.current
+    setRoute(null); resetAlignment(); setStepIndex(0); setRouteError(''); setLoadingRoute(true)
+    try {
+      const response = await fetch(`/api/app/routes/nearest-stairs?sourceId=${encodeURIComponent(selectedPlaceId)}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(typeof data?.detail === 'string' ? data.detail : '서버에서 대피 경로를 계산하지 못했어요.')
+      const parsed = cameraRouteFromNearest(data)
+      if (version === loadVersion.current) setRoute(parsed)
+    } catch (cause) {
+      if (version === loadVersion.current) setRouteError(cause instanceof Error ? cause.message : '서버 경로를 불러오지 못했어요.')
     } finally { if (version === loadVersion.current) setLoadingRoute(false) }
   }
 
@@ -188,11 +223,13 @@ export default function CameraGuide() {
   return <main className="camera-guide">
     <header className="camera-header"><div><span>AR EVACUATE</span><h1>대피 길 안내</h1></div><div className="camera-header-actions"><span className="camera-badge">{complete ? '안내 완료' : route ? `${Math.min(stepIndex + 1, route.steps.length)}/${route.steps.length} 구간` : '준비'}</span><div className="camera-header-tools"><button type="button" onClick={() => { setShowDisplay(false); setShowHelp(true) }}>사용 방법</button><button type="button" onClick={() => { setShowHelp(false); setShowDisplay(true) }}>보기 설정</button></div></div></header>
     {!route && <section className="camera-start" aria-label="안내 시작">
-      <p className="camera-eyebrow">빠른 시작</p><h2>대피 경로를 선택해 주세요</h2><p>시연할 때는 예제 경로를 바로 시작할 수 있습니다.</p>
+      <p className="camera-eyebrow">현재 위치 선택</p><h2>어디에 계신가요?</h2><p>등록된 장소를 선택하면 가장 가까운 비상계단까지 계산합니다.</p>
       <button type="button" className="camera-help-link" onClick={() => setShowHelp(true)}>처음 사용하시나요? 30초 사용법 보기</button>
-      <button type="button" className="camera-primary" disabled={loadingRoute} onClick={() => loadRoute()}>{loadingRoute ? '경로 준비 중…' : '가상 회사 예제로 시작'}</button>
-      <div className="camera-file"><span>또는 관리자 경로 사용</span><label htmlFor="camera-route-file">경로 파일 선택</label><input id="camera-route-file" className="sr-only" type="file" accept=".json,application/json" onChange={e => { const file = e.target.files?.[0]; if (file) void loadRoute(file); e.target.value = '' }} /></div>
-      {routeError && <section className="camera-error-card" role="alert"><span className="error-symbol">!</span><div><strong>경로 파일을 열지 못했습니다</strong><p>{routeError}</p><label className="error-action" htmlFor="camera-route-file">다른 파일 선택</label></div></section>}
+      {serverPlaces.length === 0 ? <button type="button" className="camera-primary" disabled={loadingPlaces} onClick={loadServerPlaces}>{loadingPlaces ? '장소 불러오는 중…' : '등록된 장소 불러오기'}</button> : <div className="camera-live-start"><label htmlFor="camera-current-place">현재 장소</label><select id="camera-current-place" value={selectedPlaceId} onChange={event => setSelectedPlaceId(event.target.value)}>{serverPlaces.map(place => <option key={place.id} value={place.id}>{place.building} · {place.floor} · {place.room}</option>)}</select><button type="button" className="camera-primary" disabled={loadingRoute || !selectedPlaceId} onClick={loadRouteFromServer}>{loadingRoute ? '안전 경로 계산 중…' : '가장 가까운 비상계단 안내 시작'}</button></div>}
+      <div className="camera-or"><span>시연·연결 오류 시</span></div>
+      <button type="button" className="camera-secondary" disabled={loadingRoute} onClick={() => loadRoute()}>{loadingRoute ? '경로 준비 중…' : '가상 회사 예제로 시작'}</button>
+      <div className="camera-file"><span>또는 저장한 관리자 경로 사용</span><label htmlFor="camera-route-file">경로 파일 선택</label><input id="camera-route-file" className="sr-only" type="file" accept=".json,application/json" onChange={e => { const file = e.target.files?.[0]; if (file) void loadRoute(file); e.target.value = '' }} /></div>
+      {routeError && <section className="camera-error-card" role="alert"><span className="error-symbol">!</span><div><strong>대피 경로를 준비하지 못했습니다</strong><p>{routeError}</p><button type="button" className="error-action" onClick={() => { setRouteError(''); void loadServerPlaces() }}>다시 불러오기</button></div></section>}
     </section>}
     {route && <section className="camera-route-bar" aria-label="현재 안내 경로"><div><span>{route.building} · {route.floor}</span><strong>{complete ? '비상계단 입구에 도착했습니다' : `${step?.toName ?? route.destination.room}까지 ${step?.distanceMeters ?? 0}m`}</strong></div><div className="route-actions"><span className="route-distance">총 {route.totalDistanceMeters}m</span><button type="button" onClick={() => setShowRouteChange(true)}>경로 변경</button></div></section>}
     {route && showRouteChange && <section className="route-change-confirm" role="alert"><strong>현재 안내를 중단하고 경로를 변경할까요?</strong><p>진행 중인 구간은 초기화되고 시작 화면으로 돌아갑니다.</p><div><button type="button" className="camera-secondary" onClick={() => setShowRouteChange(false)}>계속 안내받기</button><button type="button" className="camera-danger" onClick={chooseAnotherRoute}>경로 다시 선택</button></div></section>}

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { createConnection, errorMessage, getConnections, restoreConnection, setConnectionAvailability, trashConnection, updateConnection } from './api'
 import type { Place, PlaceConnection } from './types'
 import './ConnectionManager.css'
+import './ConnectionGuidance.css'
 
 const placeLabel = (place: Place) => `${place.building} · ${place.floor} · ${place.room}`
 const normalized = (value: string) => value.toLocaleLowerCase().trim()
@@ -20,6 +21,12 @@ export default function ConnectionManager({ places, disabled, onChanged }: { pla
   const [distance, setDistance] = useState('')
   const [forward, setForward] = useState('')
   const [reverse, setReverse] = useState('')
+  const [forwardDirection, setForwardDirection] = useState('')
+  const [reverseDirection, setReverseDirection] = useState('')
+  const [forwardFacingHint, setForwardFacingHint] = useState('')
+  const [reverseFacingHint, setReverseFacingHint] = useState('')
+  const [forwardSignText, setForwardSignText] = useState('')
+  const [reverseSignText, setReverseSignText] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [blockingId, setBlockingId] = useState<string | null>(null)
   const [blockedReason, setBlockedReason] = useState('')
@@ -48,7 +55,9 @@ export default function ConnectionManager({ places, disabled, onChanged }: { pla
   const visibleLinks = activeLinks.filter((link) => statusFilter === 'all' || (statusFilter === 'blocked' ? link.blocked : !link.blocked))
   const deletedLinks = links.filter((link) => link.deletedAt)
   const locked = disabled || busy || loading || !loaded
-  const canSubmit = !locked && Boolean(source) && destinations.some((place) => place.id === targetId)
+  const validSign = (value: string) => !value.trim() || value.normalize('NFKC').replace(/[^\p{L}\p{N}]/gu, '').length >= 2
+  const guidanceReady = Boolean(forwardDirection && reverseDirection && forwardFacingHint.trim() && reverseFacingHint.trim() && validSign(forwardSignText) && validSign(reverseSignText))
+  const canSubmit = !locked && Boolean(source) && destinations.some((place) => place.id === targetId) && guidanceReady
   const label = (id: string) => {
     const place = placesById.get(id)
     return place ? `${placeLabel(place)}${place.deletedAt ? ' (삭제한 장소)' : ''}` : '목록에 없는 장소'
@@ -60,12 +69,17 @@ export default function ConnectionManager({ places, disabled, onChanged }: { pla
 
   function clearForm() {
     setEditingId(null); setSourceId(''); setTargetId(''); setDistance(''); setForward(''); setReverse('')
+    setForwardDirection(''); setReverseDirection(''); setForwardFacingHint(''); setReverseFacingHint('')
+    setForwardSignText(''); setReverseSignText('')
   }
 
   function edit(link: PlaceConnection) {
     setFormOpen(true)
     setEditingId(link.id); setSourceId(link.sourceId); setTargetId(link.targetId)
     setDistance(String(link.distanceMeters)); setForward(link.forwardInstruction); setReverse(link.reverseInstruction)
+    setForwardDirection(link.forwardDirection ?? ''); setReverseDirection(link.reverseDirection ?? '')
+    setForwardFacingHint(link.forwardFacingHint); setReverseFacingHint(link.reverseFacingHint)
+    setForwardSignText(link.forwardSignText); setReverseSignText(link.reverseSignText)
     setError(''); setMessage('')
     requestAnimationFrame(() => document.getElementById('connection-source')?.focus())
   }
@@ -75,8 +89,8 @@ export default function ConnectionManager({ places, disabled, onChanged }: { pla
     if (!canSubmit) return
     setError(''); setMessage('')
     const meters = Number(distance)
-    if (!Number.isFinite(meters) || meters <= 0 || meters > 1000 || !forward.trim() || !reverse.trim()) {
-      setError('0보다 크고 1,000m 이하인 거리와 양방향 안내 문장을 입력해 주세요.'); return
+    if (!Number.isFinite(meters) || meters <= 0 || meters > 1000 || !forward.trim() || !reverse.trim() || !guidanceReady) {
+      setError('거리, 양방향 안내 문장, 화살표 방향과 바라볼 기준을 입력해 주세요. 표지판 이름은 비우거나 두 글자 이상 작성해야 합니다.'); return
     }
     if (activeLinks.some((link) => link.id !== editingId &&
       ((link.sourceId === sourceId && link.targetId === targetId) || (link.sourceId === targetId && link.targetId === sourceId)))) {
@@ -84,7 +98,10 @@ export default function ConnectionManager({ places, disabled, onChanged }: { pla
     }
     setBusy(true)
     try {
-      const values = { sourceId, targetId, distanceMeters: meters, forwardInstruction: forward.trim(), reverseInstruction: reverse.trim() }
+      const values = { sourceId, targetId, distanceMeters: meters, forwardInstruction: forward.trim(), reverseInstruction: reverse.trim(),
+        forwardDirection: forwardDirection as 'left' | 'straight' | 'right', reverseDirection: reverseDirection as 'left' | 'straight' | 'right',
+        forwardFacingHint: forwardFacingHint.trim(), reverseFacingHint: reverseFacingHint.trim(),
+        forwardSignText: forwardSignText.trim(), reverseSignText: reverseSignText.trim() }
       const saved = editingId ? await updateConnection(editingId, values) : await createConnection(values)
       setLinks((current) => [saved, ...current.filter((link) => link.id !== saved.id)])
       onChanged()
@@ -143,8 +160,18 @@ export default function ConnectionManager({ places, disabled, onChanged }: { pla
         <input id="connection-distance" type="number" min="0.1" max="1000" step="0.1" inputMode="decimal" placeholder="예: 8" required value={distance} disabled={locked} onChange={(event) => setDistance(event.target.value)} />
         <label htmlFor="connection-forward">출발 → 도착 안내</label>
         <textarea id="connection-forward" rows={2} maxLength={300} placeholder="예: 회의실 문을 나와 파란 문 쪽으로 이동하세요." required value={forward} disabled={locked} onChange={(event) => setForward(event.target.value)} />
+        <fieldset className="connection-guidance"><legend>출발 → 도착 카메라 안내</legend>
+          <label htmlFor="connection-forward-direction">화살표 방향</label><select id="connection-forward-direction" required value={forwardDirection} disabled={locked} onChange={(event) => setForwardDirection(event.target.value)}><option value="">방향 선택</option><option value="straight">직진</option><option value="left">왼쪽</option><option value="right">오른쪽</option></select>
+          <label htmlFor="connection-forward-facing">방향을 판단할 기준</label><input id="connection-forward-facing" required maxLength={200} value={forwardFacingHint} disabled={locked} placeholder="예: 회의실 문을 등지고 복도 표지판을 보세요." onChange={(event) => setForwardFacingHint(event.target.value)} />
+          <label htmlFor="connection-forward-sign">AI가 읽을 표지판 이름 (선택)</label><input id="connection-forward-sign" maxLength={60} value={forwardSignText} disabled={locked} placeholder="예: 복도 갈림길" onChange={(event) => setForwardSignText(event.target.value)} />
+        </fieldset>
         <label htmlFor="connection-reverse">도착 → 출발 안내</label>
         <textarea id="connection-reverse" rows={2} maxLength={300} placeholder="예: 제3회의실 표지판이 있는 문으로 이동하세요." required value={reverse} disabled={locked} onChange={(event) => setReverse(event.target.value)} />
+        <fieldset className="connection-guidance"><legend>도착 → 출발 카메라 안내</legend>
+          <label htmlFor="connection-reverse-direction">화살표 방향</label><select id="connection-reverse-direction" required value={reverseDirection} disabled={locked} onChange={(event) => setReverseDirection(event.target.value)}><option value="">방향 선택</option><option value="straight">직진</option><option value="left">왼쪽</option><option value="right">오른쪽</option></select>
+          <label htmlFor="connection-reverse-facing">방향을 판단할 기준</label><input id="connection-reverse-facing" required maxLength={200} value={reverseFacingHint} disabled={locked} placeholder="예: 계단 문을 등지고 회의실 표지판을 보세요." onChange={(event) => setReverseFacingHint(event.target.value)} />
+          <label htmlFor="connection-reverse-sign">AI가 읽을 표지판 이름 (선택)</label><input id="connection-reverse-sign" maxLength={60} value={reverseSignText} disabled={locked} placeholder="예: 제3회의실" onChange={(event) => setReverseSignText(event.target.value)} />
+        </fieldset>
         <p className="input-hint">반대로 걸을 때는 안내가 달라질 수 있어요. 두 방향을 각각 작성해 주세요.</p>
         <div className="place-form-actions"><button className="register-button" type="submit" disabled={!canSubmit}>{busy ? '처리 중…' : editingId ? '연결 수정 저장' : '연결 저장'}</button>
           <button className="place-cancel" type="button" disabled={busy} onClick={() => { clearForm(); setFormOpen(false) }}>취소</button></div>
@@ -169,7 +196,7 @@ export default function ConnectionManager({ places, disabled, onChanged }: { pla
             <p>이 연결은 양방향 모두 경로 계산에서 제외돼요.</p>
             <div className="row-actions"><button type="submit" className="block-connection" disabled={locked}>통행 불가 저장</button><button type="button" className="place-cancel" disabled={busy} onClick={() => { setBlockingId(null); setBlockedReason('') }}>통행 불가 등록 취소</button></div>
           </form>}
-          <details className="connection-edit-details"><summary>길 정보 보기·수정</summary><p>가는 길: {link.forwardInstruction}</p><p>오는 길: {link.reverseInstruction}</p><div className="row-actions"><button type="button" className="edit-place" disabled={locked || !usable(link)} onClick={() => edit(link)}>연결 수정</button><button type="button" className="delete-place" disabled={locked} onClick={() => changeDeleted(link)}>연결 삭제</button></div></details>
+          <details className="connection-edit-details"><summary>길 정보 보기·수정</summary><p>가는 길: {link.forwardInstruction} · {link.forwardDirection ?? '화살표 미등록'}</p><p>오는 길: {link.reverseInstruction} · {link.reverseDirection ?? '화살표 미등록'}</p>{(!link.forwardDirection || !link.reverseDirection) && <p className="connection-guidance-warning">카메라 안내를 사용하려면 이 연결을 수정해 방향 기준을 등록해 주세요.</p>}<div className="row-actions"><button type="button" className="edit-place" disabled={locked || !usable(link)} onClick={() => edit(link)}>연결 수정</button><button type="button" className="delete-place" disabled={locked} onClick={() => changeDeleted(link)}>연결 삭제</button></div></details>
         </li>)}</ul>
         {deletedLinks.length > 0 && <details className="deleted-places"><summary>삭제한 연결 {deletedLinks.length}개</summary><ul>{deletedLinks.map((link) => <li key={link.id}><span>{label(link.sourceId)} ↔ {label(link.targetId)}</span>
           <button type="button" className="edit-place" disabled={locked || !usable(link)} onClick={() => changeDeleted(link, true)}>연결 복원</button></li>)}</ul><p>연결된 장소가 삭제됐다면 장소부터 복원해 주세요.</p></details>}

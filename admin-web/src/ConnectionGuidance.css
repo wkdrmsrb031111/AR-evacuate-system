@@ -1,0 +1,36 @@
+.connection-form input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  color: #243f48;
+  background: #fff;
+  border: 1px solid #cdded7;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.connection-guidance {
+  margin: 16px 0 22px;
+  padding: 16px;
+  background: #edf7f2;
+  border: 1px solid #cfe1d9;
+  border-radius: 10px;
+}
+
+.connection-guidance legend {
+  padding: 0 6px;
+  color: #2f6652;
+  font-weight: 700;
+}
+
+.connection-guidance label:not(:first-of-type) {
+  margin-top: 13px;
+}
+
+.connection-guidance-warning {
+  padding: 9px;
+  color: #8a5b1f !important;
+  background: #fff5df;
+  border-radius: 7px;
+}

@@ -25,6 +25,12 @@ export type ConnectionValues = {
   distanceMeters: number
   forwardInstruction: string
   reverseInstruction: string
+  forwardDirection: 'left' | 'straight' | 'right' | null
+  reverseDirection: 'left' | 'straight' | 'right' | null
+  forwardFacingHint: string
+  reverseFacingHint: string
+  forwardSignText: string
+  reverseSignText: string
 }
 
 export type PlaceConnection = ConnectionValues & {
@@ -51,7 +57,8 @@ export type NearestStairsRoute = {
   destination: RoutePlace | null
   totalDistanceMeters: number | null
   places: RoutePlace[]
-  steps: { connectionId: string; fromPlaceId: string; toPlaceId: string; distanceMeters: number; instruction: string }[]
+  steps: { connectionId: string; fromPlaceId: string; toPlaceId: string; distanceMeters: number; instruction: string; direction: 'left' | 'straight' | 'right' | null; facingHint: string; facingSignText: string }[]
+  cameraReady?: boolean
   message: string
   notice: string
 }

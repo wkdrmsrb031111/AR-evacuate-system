@@ -67,7 +67,7 @@ server\.venv\Scripts\python.exe -m unittest discover -s server -p "test_*.py" -v
 관리자: `GET /api/connections`, `POST /api/connections`, `PUT /api/connections/{id}`, `DELETE /api/connections/{id}`, `POST /api/connections/{id}/restore`.
 
 앱 조회 전용: `GET /api/app/connections` → `{schemaVersion:1,count,connections:[...]}`.
-각 구간은 `id, sourceId, targetId, distanceMeters, forwardInstruction, reverseInstruction, bidirectional:true, createdAt`을 포함합니다. 관리자 응답에는 삭제된 구간의 `deletedAt`이 추가됩니다.
+각 구간은 `id, sourceId, targetId, distanceMeters, forwardInstruction, reverseInstruction`과 양방향 `Direction, FacingHint, SignText`, `bidirectional:true, createdAt`을 포함합니다. 관리자 응답에는 삭제된 구간의 `deletedAt`이 추가됩니다.
 같은 건물·층의 활성 장소 두 곳만 연결할 수 있으며 반대 순서의 중복도 금지합니다. 거리는 0 초과 1000m 이하, 안내 문장은 방향마다 1~300자입니다. 삭제한 구간과 삭제한 장소에 연결된 구간은 앱에서 제외합니다. 층간 연결은 미구현입니다. 통행 불가 상태는 아래 API로 관리합니다. 같은 층의 최단 거리 계산은 아래 API를 사용합니다.
 
 

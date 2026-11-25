@@ -139,7 +139,8 @@ class RoutingTests(unittest.TestCase):
         start, stairs = self.place('회의실'), self.place('계단','stairs')
         link = self.link(start,stairs,5)
         with closing(sqlite3.connect(self.path / 'evacuate.sqlite3')) as db:
-            for column in ('blocked','blocked_reason','blocked_at'):
+            for column in ('blocked','blocked_reason','blocked_at','forward_direction','reverse_direction',
+                           'forward_facing_hint','reverse_facing_hint','forward_sign_text','reverse_sign_text'):
                 db.execute(f'ALTER TABLE connections DROP COLUMN {column}')
             db.commit()
         for _ in range(2):
@@ -182,6 +183,26 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(result['totalDistanceMeters'],.3)
         self.assertEqual([s['instruction'] for s in result['steps']],['복도 방향','계단 방향'])
         self.assertEqual(result['steps'][0]['fromPlaceId'],start)
+
+    def test_camera_guidance_metadata_follows_travel_direction(self):
+        start, hall, stairs = self.place('회의실'), self.place('복도','corridor'), self.place('계단','stairs')
+        response = self.client.post('/api/connections', json={
+            'sourceId':hall,'targetId':start,'distanceMeters':2,
+            'forwardInstruction':'회의실 쪽','reverseInstruction':'복도 쪽',
+            'forwardDirection':'right','reverseDirection':'left',
+            'forwardFacingHint':'회의실 표지판을 보세요.','reverseFacingHint':'복도 표지판을 보세요.',
+            'forwardSignText':'회의실','reverseSignText':'복도'})
+        self.assertEqual(response.status_code,201,response.text)
+        self.client.post('/api/connections', json={
+            'sourceId':hall,'targetId':stairs,'distanceMeters':3,
+            'forwardInstruction':'계단 쪽','reverseInstruction':'복도 쪽',
+            'forwardDirection':'straight','reverseDirection':'straight',
+            'forwardFacingHint':'계단 표지판을 보세요.','reverseFacingHint':'복도 표지판을 보세요.',
+            'forwardSignText':'비상계단','reverseSignText':'복도'})
+        forward = self.route(start).json()
+        self.assertTrue(forward['cameraReady'])
+        self.assertEqual((forward['steps'][0]['direction'],forward['steps'][0]['facingSignText']),('left','복도'))
+        self.assertEqual((forward['steps'][1]['direction'],forward['steps'][1]['facingSignText']),('straight','비상계단'))
 
     def test_no_stairs_unreachable_and_source_already_stairs(self):
         start = self.place('회의실')

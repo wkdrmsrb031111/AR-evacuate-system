@@ -61,17 +61,25 @@ def seed():
             report['uploadedPhotos'].append(room)
 
         edges = [
-            ('ai 듣기','복도 갈림길',8,'문을 나와 파란 문이 보이는 복도 갈림길로 이동하세요.','ai 듣기 표지판이 있는 나무 문으로 이동하세요.'),
-            ('복도 갈림길','동쪽 비상계단',12,'초록색 문과 동쪽 비상계단 표지판이 있는 입구로 이동하세요.','파란 문이 있는 복도 갈림길로 돌아가세요.'),
-            ('ai 듣기','서쪽 비상계단',60,'주황색 문과 서쪽 비상계단 표지판이 있는 입구로 이동하세요.','ai 듣기 표지판이 있는 나무 문으로 돌아가세요.'),
+            ('ai 듣기','복도 갈림길',8,'문을 나와 파란 문이 보이는 복도 갈림길로 이동하세요.','ai 듣기 표지판이 있는 나무 문으로 이동하세요.',
+             'straight','straight','복도 갈림길 표지판을 정면으로 보세요.','ai 듣기 표지판을 정면으로 보세요.','복도 갈림길','ai 듣기'),
+            ('복도 갈림길','동쪽 비상계단',12,'초록색 문과 동쪽 비상계단 표지판이 있는 입구로 이동하세요.','파란 문이 있는 복도 갈림길로 돌아가세요.',
+             'right','left','동쪽 비상계단 표지판을 정면으로 보세요.','복도 갈림길 표지판을 정면으로 보세요.','동쪽 비상계단','복도 갈림길'),
+            ('ai 듣기','서쪽 비상계단',60,'주황색 문과 서쪽 비상계단 표지판이 있는 입구로 이동하세요.','ai 듣기 표지판이 있는 나무 문으로 돌아가세요.',
+             'left','right','서쪽 비상계단 표지판을 정면으로 보세요.','ai 듣기 표지판을 정면으로 보세요.','서쪽 비상계단','ai 듣기'),
         ]
         existing_links = request('GET','/api/connections')
-        for source,target,distance,forward,reverse in edges:
+        for source,target,distance,forward,reverse,forward_direction,reverse_direction,forward_hint,reverse_hint,forward_sign,reverse_sign in edges:
             pair = {ids[source],ids[target]}
             matches = [link for link in existing_links if not link.get('deletedAt') and {link['sourceId'],link['targetId']} == pair]
-            link = matches[0] if matches else request('POST','/api/connections',json={
+            payload = {
                 'sourceId':ids[source],'targetId':ids[target],'distanceMeters':distance,
-                'forwardInstruction':forward,'reverseInstruction':reverse})
+                'forwardInstruction':forward,'reverseInstruction':reverse,
+                'forwardDirection':forward_direction,'reverseDirection':reverse_direction,
+                'forwardFacingHint':forward_hint,'reverseFacingHint':reverse_hint,
+                'forwardSignText':forward_sign,'reverseSignText':reverse_sign,
+            }
+            link = request('PUT',f"/api/connections/{matches[0]['id']}",json=payload) if matches else request('POST','/api/connections',json=payload)
             report['connections'].append({'id':link['id'],'source':source,'target':target})
         report['route'] = request('GET','/api/app/routes/nearest-stairs',params={'sourceId':ids['ai 듣기']})
     (ASSETS / 'seed-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')

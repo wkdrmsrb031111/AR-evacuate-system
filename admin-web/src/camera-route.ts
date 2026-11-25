@@ -28,3 +28,37 @@ export function parseCameraRoute(value: unknown): CameraRoute {
   if (previous !== r.destination.id || Math.abs(total - r.totalDistanceMeters) > 0.01 || r.steps.at(-1)?.toName !== r.destination.room) return fail()
   return r as unknown as CameraRoute
 }
+
+export function cameraRouteFromNearest(value: unknown): CameraRoute {
+  const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+  if (!object(value)) throw new Error('서버가 보낸 경로 형식을 확인하지 못했어요.')
+  if (value.status !== 'found') {
+    throw new Error(typeof value.message === 'string' ? value.message : '이 장소에서 비상계단까지 경로를 찾지 못했어요.')
+  }
+  if (!object(value.source) || !object(value.destination) || !Array.isArray(value.places) || !Array.isArray(value.steps)) {
+    throw new Error('서버 경로에 필요한 장소 정보가 없어요.')
+  }
+  const names = new Map<string, string>()
+  for (const place of value.places) {
+    if (object(place) && typeof place.id === 'string' && typeof place.room === 'string') names.set(place.id, place.room)
+  }
+  const missingGuidance = value.steps.some(step => !object(step) || !['left', 'straight', 'right'].includes(String(step.direction)) || typeof step.facingHint !== 'string' || !step.facingHint.trim())
+  if (missingGuidance) throw new Error('이 경로의 화살표 방향이 아직 등록되지 않았어요. 관리자 웹의 길 정보에서 양방향 카메라 안내를 입력해 주세요.')
+  return parseCameraRoute({
+    kind: 'evacuation-camera-route', schemaVersion: 1, demo: false,
+    calculatedAt: value.calculatedAt, building: value.source.building, floor: value.source.floor,
+    source: { id: value.source.id, room: value.source.room },
+    destination: { id: value.destination.id, room: value.destination.room },
+    totalDistanceMeters: value.totalDistanceMeters,
+    steps: value.steps.map(step => {
+      const item = step as Record<string, unknown>
+      const sign = typeof item.facingSignText === 'string' ? item.facingSignText.trim() : ''
+      return {
+        connectionId: item.connectionId, fromPlaceId: item.fromPlaceId, toPlaceId: item.toPlaceId,
+        distanceMeters: item.distanceMeters, instruction: item.instruction,
+        toName: names.get(String(item.toPlaceId)), direction: item.direction,
+        facingHint: String(item.facingHint).trim(), ...(sign ? { facingSignText: sign } : {}),
+      }
+    }),
+  })
+}
